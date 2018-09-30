@@ -4,6 +4,7 @@ import numpy as np
 import random
 import torch
 import torch.nn.functional as F
+from abc import abstractmethod
 from torch import optim
 
 AgentConfig = namedtuple("AgentConfig", [
@@ -11,7 +12,7 @@ AgentConfig = namedtuple("AgentConfig", [
 ])
 
 
-class DQNAgent():
+class DummyAgent():
     """Interacts with and learns from the environment."""
 
     def __init__(self, agent_config, name, network_builder, replay_buffer, device, seed):
@@ -72,6 +73,61 @@ class DQNAgent():
         else:
             return random.choice(np.arange(self.config.action_size))
 
+    @abstractmethod
+    def learn(self, experiences, gamma):
+        pass
+
+    @staticmethod
+    def soft_update(local_model, target_model, tau):
+        """Soft update model parameters.
+        θ_target = τ*θ_local + (1 - τ)*θ_target
+
+        Params
+        ======
+            local_model (PyTorch model): weights will be copied from
+            target_model (PyTorch model): weights will be copied to
+            tau (float): interpolation parameter
+        """
+        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
+            target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
+
+
+class DDQNAgent(DummyAgent):
+    def learn(self, experiences, gamma):
+        """Update value parameters using given batch of experience tuples.
+
+        Params
+        ======
+            experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples
+            gamma (float): discount factor
+        """
+        states, actions, rewards, next_states, dones = experiences
+
+        # Q_targets_next = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
+
+        Q_optimal_actions = self.qnetwork_local(next_states).detach().max(1)[1].unsqueeze(1)
+        Q_crossed_values = self.qnetwork_target(next_states).detach().gather(1, Q_optimal_actions)
+
+        # Compute Q targets for current states
+        Q_targets = rewards + (gamma * Q_crossed_values * (1 - dones))
+
+        # Get expected Q values from local model
+        Q_expected = self.qnetwork_local(states).gather(1, actions)
+
+        # Compute loss
+        loss = F.mse_loss(Q_expected, Q_targets)
+
+        self.debug_counter += 1
+        # Minimize the loss
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        # ------------------- update target network ------------------- #
+        self.soft_update(self.qnetwork_local, self.qnetwork_target, self.config.tau)
+
+
+class DQNAgent(DummyAgent):
     def learn(self, experiences, gamma):
         """Update value parameters using given batch of experience tuples.
 
@@ -101,16 +157,3 @@ class DQNAgent():
 
         # ------------------- update target network ------------------- #
         self.soft_update(self.qnetwork_local, self.qnetwork_target, self.config.tau)
-
-    def soft_update(self, local_model, target_model, tau):
-        """Soft update model parameters.
-        θ_target = τ*θ_local + (1 - τ)*θ_target
-
-        Params
-        ======
-            local_model (PyTorch model): weights will be copied from
-            target_model (PyTorch model): weights will be copied to
-            tau (float): interpolation parameter
-        """
-        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
-            target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)

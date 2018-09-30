@@ -1,9 +1,7 @@
-import numpy as np
 import os
-import torch
 from unityagents import UnityEnvironment
 
-from agents import DQNAgent, AgentConfig
+from agents import *
 from qnetwork import QNetwork
 from replay_buffer import ReplayBuffer
 
@@ -84,8 +82,26 @@ def prepare_dqn_agent(environment):
                     seed=0)
 
 
+def prepare_ddqn_agent(environment):
+    seed = 0
+    brain_name = environment.brain_names[0]
+    brain = environment.brains[brain_name]
+    action_size = brain.vector_action_space_size
+    env_info = environment.reset(train_mode=True)[brain_name]
+    state = env_info.vector_observations[0]
+    state_size = len(state)
+    hidden_neurons = 24
+    return DDQNAgent(agent_config=AgentConfig(state_size, action_size, LR, UPDATE_EVERY, BATCH_SIZE, GAMMA, TAU),
+                     name=brain_name,
+                     network_builder=lambda: QNetwork(state_size, action_size, hidden_neurons, seed).to(device),
+                     replay_buffer=ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, device, seed),
+                     device=device,
+                     seed=0)
+
+
+
 env = prepare_environment()
-agent = prepare_dqn_agent(env)
+agent = prepare_ddqn_agent(env)
 
 scores = train(agent, env, solution_score=14.0)
 
@@ -95,6 +111,6 @@ fig = plt.figure()
 plt.plot(np.arange(len(scores)), scores)
 plt.ylabel('Score')
 plt.xlabel('Episode #')
-plt.savefig("dqn_training.png")
+plt.savefig("ddqn_training.png")
 
 env.close()

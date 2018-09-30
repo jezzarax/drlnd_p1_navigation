@@ -1,12 +1,26 @@
-from unityagents import UnityEnvironment
 import numpy as np
-import dqn as algo
+import os
+import torch
+from unityagents import UnityEnvironment
 
-env = UnityEnvironment(file_name=algo.ENVIRONMENT_BINARY)
+from agents import DQNAgent, AgentConfig
+from qnetwork import QNetwork
+from replay_buffer import ReplayBuffer
+
+BUFFER_SIZE = int(1e5)  # replay buffer size
+BATCH_SIZE = 64  # minibatch size
+GAMMA = 0.99  # discount factor
+TAU = 1e-3  # for soft update of target parameters
+LR = 5e-4  # learning rate
+UPDATE_EVERY = 4  # how often to update the network
+
+ENVIRONMENT_BINARY = os.environ['DRLUD_P1_ENV']
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+env = UnityEnvironment(file_name=ENVIRONMENT_BINARY)
 
 def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995, solution_score=100.0):
-    from collections import deque
-    import torch
     """Deep Q-Learning.
     
     Params
@@ -17,16 +31,20 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
         eps_end (float): minimum value of epsilon
         eps_decay (float): multiplicative factor (per episode) for decreasing epsilon
     """
-
+    seed = 0
     brain_name = env.brain_names[0]
     brain = env.brains[brain_name]
     action_size = brain.vector_action_space_size
     env_info = env.reset(train_mode=True)[brain_name]
     state = env_info.vector_observations[0]
     state_size = len(state)
-    agent = algo.Agent(state_size=state_size, action_size=action_size, seed=0)
+
+    agent = DQNAgent(agent_config=AgentConfig(state_size, action_size, LR, UPDATE_EVERY, BATCH_SIZE, GAMMA, TAU),
+                     network_builder=lambda: QNetwork(state_size, action_size, 64, seed).to(device),
+                     replay_buffer=ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, device, seed),
+                     device=device,
+                     seed=0)
     scores = []                        # list containing scores from each episode
-    scores_window = deque(maxlen=100)  # last 100 scores
     eps = eps_start                    # initialize epsilon
     for i_episode in range(1, n_episodes+1):
         env_info = env.reset(train_mode=True)[brain_name]
@@ -42,15 +60,17 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
             state = next_state
             score += reward
             if done:
-                break 
-        scores_window.append(score)       # save most recent score
-        scores.append(score)              # save most recent score
+                break
+
+        scores.append(score)
         eps = max(eps_end, eps_decay*eps) # decrease epsilon
-        print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_window)), end="")
+        last_100_steps_mean = np.mean(scores[-100:])
+        print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, last_100_steps_mean), end="")
         if i_episode % 100 == 0:
-            print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_window)))
-        if np.mean(scores_window)>=solution_score:
-            print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode-100, np.mean(scores_window)))
+            print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, last_100_steps_mean))
+
+        if last_100_steps_mean >= solution_score:
+            print(f'\nEnvironment solved in {i_episode:d} episodes!\tAverage Score: {last_100_steps_mean:.2f}')
             torch.save(agent.qnetwork_local.state_dict(), 'checkpoint.pth')
             break
     return scores

@@ -38,9 +38,10 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
     env_info = env.reset(train_mode=True)[brain_name]
     state = env_info.vector_observations[0]
     state_size = len(state)
+    hidden_neurons = 24
 
     agent = DQNAgent(agent_config=AgentConfig(state_size, action_size, LR, UPDATE_EVERY, BATCH_SIZE, GAMMA, TAU),
-                     network_builder=lambda: QNetwork(state_size, action_size, 64, seed).to(device),
+                     network_builder=lambda: QNetwork(state_size, action_size, hidden_neurons, seed).to(device),
                      replay_buffer=ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, device, seed),
                      device=device,
                      seed=0)

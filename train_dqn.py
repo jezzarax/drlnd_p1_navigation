@@ -1,6 +1,6 @@
 from unityagents import UnityEnvironment
 import numpy as np
-import ddqn as algo
+import dqn as algo
 
 env = UnityEnvironment(file_name=algo.ENVIRONMENT_BINARY)
 
@@ -59,10 +59,9 @@ scores = dqn(solution_score=14.0)
 
 import matplotlib.pyplot as plt
 fig = plt.figure()
-ax = fig.add_subplot(111)
 plt.plot(np.arange(len(scores)), scores)
 plt.ylabel('Score')
 plt.xlabel('Episode #')
-plt.savefig("ddqn_training.png")
+plt.savefig("dqn_training.png")
 
 env.close()

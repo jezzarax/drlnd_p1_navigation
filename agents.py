@@ -14,7 +14,7 @@ AgentConfig = namedtuple("AgentConfig", [
 class DQNAgent():
     """Interacts with and learns from the environment."""
 
-    def __init__(self, agent_config, network_builder, replay_buffer, device, seed):
+    def __init__(self, agent_config, name, network_builder, replay_buffer, device, seed):
         """Initialize an Agent object.
 
         Params
@@ -24,6 +24,7 @@ class DQNAgent():
             seed (int): random seed
         """
         self.config = agent_config
+        self.name = name
         self.seed = seed
         random.seed(seed)
 

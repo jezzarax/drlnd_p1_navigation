@@ -18,9 +18,9 @@ ENVIRONMENT_BINARY = os.environ['DRLUD_P1_ENV']
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-env = UnityEnvironment(file_name=ENVIRONMENT_BINARY)
 
-def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995, solution_score=100.0):
+def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995,
+          solution_score=100.0):
     """Deep Q-Learning.
     
     Params
@@ -31,29 +31,15 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
         eps_end (float): minimum value of epsilon
         eps_decay (float): multiplicative factor (per episode) for decreasing epsilon
     """
-    seed = 0
-    brain_name = env.brain_names[0]
-    brain = env.brains[brain_name]
-    action_size = brain.vector_action_space_size
-    env_info = env.reset(train_mode=True)[brain_name]
-    state = env_info.vector_observations[0]
-    state_size = len(state)
-    hidden_neurons = 24
-
-    agent = DQNAgent(agent_config=AgentConfig(state_size, action_size, LR, UPDATE_EVERY, BATCH_SIZE, GAMMA, TAU),
-                     network_builder=lambda: QNetwork(state_size, action_size, hidden_neurons, seed).to(device),
-                     replay_buffer=ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, device, seed),
-                     device=device,
-                     seed=0)
-    scores = []                        # list containing scores from each episode
-    eps = eps_start                    # initialize epsilon
-    for i_episode in range(1, n_episodes+1):
-        env_info = env.reset(train_mode=True)[brain_name]
+    scores = []  # list containing scores from each episode
+    eps = eps_start  # initialize epsilon
+    for i_episode in range(1, n_episodes + 1):
+        env_info = environment.reset(train_mode=True)[agent.name]
         state = env_info.vector_observations[0]
         score = 0
         for t in range(max_t):
             action = agent.act(state, eps)
-            env_info = env.step(action)[brain_name]
+            env_info = environment.step(action)[agent.name]
             next_state = env_info.vector_observations[0]
             reward = env_info.rewards[0]
             done = env_info.local_done[0]
@@ -64,7 +50,7 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
                 break
 
         scores.append(score)
-        eps = max(eps_end, eps_decay*eps) # decrease epsilon
+        eps = max(eps_end, eps_decay * eps)  # decrease epsilon
         last_100_steps_mean = np.mean(scores[-100:])
         print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, last_100_steps_mean), end="")
         if i_episode % 100 == 0:
@@ -76,9 +62,35 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
             break
     return scores
 
-scores = dqn(solution_score=14.0)
+
+def prepare_environment():
+    return UnityEnvironment(file_name=ENVIRONMENT_BINARY)
+
+
+def prepare_dqn_agent(environment):
+    seed = 0
+    brain_name = environment.brain_names[0]
+    brain = environment.brains[brain_name]
+    action_size = brain.vector_action_space_size
+    env_info = environment.reset(train_mode=True)[brain_name]
+    state = env_info.vector_observations[0]
+    state_size = len(state)
+    hidden_neurons = 24
+    return DQNAgent(agent_config=AgentConfig(state_size, action_size, LR, UPDATE_EVERY, BATCH_SIZE, GAMMA, TAU),
+                    name=brain_name,
+                    network_builder=lambda: QNetwork(state_size, action_size, hidden_neurons, seed).to(device),
+                    replay_buffer=ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, device, seed),
+                    device=device,
+                    seed=0)
+
+
+env = prepare_environment()
+agent = prepare_dqn_agent(env)
+
+scores = train(agent, env, solution_score=14.0)
 
 import matplotlib.pyplot as plt
+
 fig = plt.figure()
 plt.plot(np.arange(len(scores)), scores)
 plt.ylabel('Score')

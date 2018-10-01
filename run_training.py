@@ -4,6 +4,7 @@ from unityagents import UnityEnvironment
 from agents import *
 from qnetwork import QNetwork
 from replay_buffer import ReplayBuffer
+import matplotlib.pyplot as plt
 
 BUFFER_SIZE = int(1e5)  # replay buffer size
 BATCH_SIZE = 64  # minibatch size
@@ -20,7 +21,6 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995,
           solution_score=100.0):
     """Deep Q-Learning.
-    
     Params
     ======
         n_episodes (int): maximum number of training episodes
@@ -104,8 +104,6 @@ env = prepare_environment()
 agent = prepare_ddqn_agent(env)
 
 scores = train(agent, env, solution_score=14.0)
-
-import matplotlib.pyplot as plt
 
 fig = plt.figure()
 plt.plot(np.arange(len(scores)), scores)

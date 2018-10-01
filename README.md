@@ -10,6 +10,8 @@ Please ensure you have [Pipenv](https://pipenv.readthedocs.io/en/latest/) instal
 
 The neural network architecture is defined in the `qnetwork.py` file. With some trial and error I found the smallest network that gave me reasonable performance in terms of number of episodes to reach a certain threshold.
 
+Implementation of DQN and DDQN agents is located inside of `agents.py`. Both of them rely on the same neural network architecture as well as the replay buffer which is in `replay_buffer.py`.
+
 ## Results
 
 TBD

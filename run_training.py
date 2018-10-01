@@ -5,6 +5,7 @@ from agents import *
 from qnetwork import QNetwork
 from replay_buffer import ReplayBuffer
 import matplotlib.pyplot as plt
+import json
 
 BUFFER_SIZE = int(1e5)  # replay buffer size
 BATCH_SIZE = 64  # minibatch size
@@ -103,12 +104,15 @@ def prepare_ddqn_agent(environment):
 env = prepare_environment()
 agent = prepare_ddqn_agent(env)
 
-scores = train(agent, env, solution_score=14.0)
+scores = train(agent, env, solution_score=100.0)
+
+with open('ddqn_training_l2.txt', 'w') as fp:
+    json.dump(scores, fp)
 
 fig = plt.figure()
 plt.plot(np.arange(len(scores)), scores)
 plt.ylabel('Score')
 plt.xlabel('Episode #')
-plt.savefig("ddqn_training.png")
+plt.savefig("ddqn_training_l2.png")
 
 env.close()

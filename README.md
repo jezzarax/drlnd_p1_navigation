@@ -15,3 +15,11 @@ Implementation of DQN and DDQN agents is located inside of `agents.py`. Both of 
 ## Results
 
 TBD
+
+## Future improvements
+
+TBD
+
+Notes:
+* State prediction module
+* p.6 from prioritized replay paper

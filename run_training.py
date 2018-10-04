@@ -66,8 +66,7 @@ def prepare_environment():
     return UnityEnvironment(file_name=ENVIRONMENT_BINARY)
 
 
-def prepare_dqn_agent(environment):
-    seed = 0
+def prepare_dqn_agent(environment, seed=0):
     brain_name = environment.brain_names[0]
     brain = environment.brains[brain_name]
     action_size = brain.vector_action_space_size
@@ -80,11 +79,10 @@ def prepare_dqn_agent(environment):
                     network_builder=lambda: QNetwork(state_size, action_size, hidden_neurons, seed).to(device),
                     replay_buffer=ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, device, seed),
                     device=device,
-                    seed=0)
+                    seed=seed)
 
 
-def prepare_ddqn_agent(environment):
-    seed = 0
+def prepare_ddqn_agent(environment, seed=0):
     brain_name = environment.brain_names[0]
     brain = environment.brains[brain_name]
     action_size = brain.vector_action_space_size
@@ -97,22 +95,17 @@ def prepare_ddqn_agent(environment):
                      network_builder=lambda: QNetwork(state_size, action_size, hidden_neurons, seed).to(device),
                      replay_buffer=ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, device, seed),
                      device=device,
-                     seed=0)
+                     seed=seed)
 
 
 
 env = prepare_environment()
-agent = prepare_ddqn_agent(env)
+scores = []
+for seed in range(20):
+    agent = prepare_dqn_agent(env, seed)
+    scores.append(train(agent, env, solution_score=100.0))
 
-scores = train(agent, env, solution_score=100.0)
-
-with open('ddqn_training_l2.txt', 'w') as fp:
+with open('dqn_training_huber.txt', 'w') as fp:
     json.dump(scores, fp)
-
-fig = plt.figure()
-plt.plot(np.arange(len(scores)), scores)
-plt.ylabel('Score')
-plt.xlabel('Episode #')
-plt.savefig("ddqn_training_l2.png")
 
 env.close()

@@ -32,7 +32,7 @@ class ReplayBuffer:
 
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
-        experiences = random.sample(self.memory, k=self.batch_size)
+        experiences = self.sample_experience()
 
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(self.device)
@@ -44,6 +44,25 @@ class ReplayBuffer:
 
         return states, actions, rewards, next_states, dones
 
+    def sample_experience(self):
+        return random.sample(self.memory, k=self.batch_size)
+
+
     def __len__(self):
         """Return the current size of internal memory."""
         return len(self.memory)
+
+
+class PrioritizedReplayBuffer(ReplayBuffer):
+    def __init__(self, action_size, buffer_size, batch_size, alpha, beta, device, seed):
+        self.priorities = deque(maxlen=buffer_size)
+        super().__init__(action_size, buffer_size, batch_size, device, seed)
+
+    def sample_experience(self):
+        return np.random.choice(self.memory, self.batch_size, p = self.priorities)
+
+    def add(self, state, action, reward, next_state, done):
+        pass
+
+    def update_probs(p):
+        pass

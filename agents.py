@@ -8,14 +8,23 @@ from abc import abstractmethod
 from torch import optim
 
 AgentConfig = namedtuple("AgentConfig", [
-    "state_size", "action_size", "lr", "update_every", "batch_size", "gamma", "tau"
+    "agent_name", 
+    "state_size", 
+    "action_size", 
+    "lr", 
+    "hidden_neurons", 
+    "update_every", 
+    "batch_size", 
+    "buffer_size", 
+    "gamma", 
+    "tau"
 ])
 
 
 class DummyAgent():
     """Interacts with and learns from the environment."""
 
-    def __init__(self, agent_config, name, network_builder, replay_buffer, device, seed):
+    def __init__(self, agent_config, network_builder, replay_buffer, device, seed):
         """Initialize an Agent object.
 
         Params
@@ -25,7 +34,7 @@ class DummyAgent():
             seed (int): random seed
         """
         self.config = agent_config
-        self.name = name
+        self.name = agent_config.agent_name
         self.seed = seed
         random.seed(seed)
 
@@ -115,7 +124,7 @@ class DDQNAgent(DummyAgent):
         Q_expected = self.qnetwork_local(states).gather(1, actions)
 
         # Compute loss
-        loss = F.mse_loss(Q_expected, Q_targets)
+        loss = F.smooth_l1_loss(Q_expected, Q_targets)
 
         self.debug_counter += 1
         # Minimize the loss
@@ -125,7 +134,6 @@ class DDQNAgent(DummyAgent):
 
         # ------------------- update target network ------------------- #
         self.soft_update(self.qnetwork_local, self.qnetwork_target, self.config.tau)
-
 
 class DQNAgent(DummyAgent):
     def learn(self, experiences, gamma):
@@ -147,7 +155,7 @@ class DQNAgent(DummyAgent):
         Q_expected = self.qnetwork_local(states).gather(1, actions)
 
         # Compute loss
-        loss = F.mse_loss(Q_expected, Q_targets)
+        loss = F.smooth_l1_loss(Q_expected, Q_targets)
 
         self.debug_counter += 1
         # Minimize the loss
@@ -157,3 +165,4 @@ class DQNAgent(DummyAgent):
 
         # ------------------- update target network ------------------- #
         self.soft_update(self.qnetwork_local, self.qnetwork_target, self.config.tau)
+

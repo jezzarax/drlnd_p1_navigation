@@ -7,12 +7,6 @@ from replay_buffer import ReplayBuffer
 import matplotlib.pyplot as plt
 import json
 
-BUFFER_SIZE = int(1e5)  # replay buffer size
-BATCH_SIZE = 64  # minibatch size
-GAMMA = 0.99  # discount factor
-TAU = 1e-3  # for soft update of target parameters
-LR = 5e-4  # learning rate
-UPDATE_EVERY = 4  # how often to update the network
 
 ENVIRONMENT_BINARY = os.environ['DRLUD_P1_ENV']
 
@@ -65,54 +59,77 @@ def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_en
 def prepare_environment():
     return UnityEnvironment(file_name=ENVIRONMENT_BINARY)
 
-
-def prepare_dqn_agent(environment):
-    seed = 0
+def infer_environment_properties(environment):
     brain_name = environment.brain_names[0]
     brain = environment.brains[brain_name]
     action_size = brain.vector_action_space_size
     env_info = environment.reset(train_mode=True)[brain_name]
     state = env_info.vector_observations[0]
     state_size = len(state)
-    hidden_neurons = 24
-    return DQNAgent(agent_config=AgentConfig(state_size, action_size, LR, UPDATE_EVERY, BATCH_SIZE, GAMMA, TAU),
-                    name=brain_name,
-                    network_builder=lambda: QNetwork(state_size, action_size, hidden_neurons, seed).to(device),
-                    replay_buffer=ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, device, seed),
-                    device=device,
-                    seed=0)
+    return (brain_name, action_size, state_size)
 
 
-def prepare_ddqn_agent(environment):
-    seed = 0
-    brain_name = environment.brain_names[0]
-    brain = environment.brains[brain_name]
-    action_size = brain.vector_action_space_size
-    env_info = environment.reset(train_mode=True)[brain_name]
-    state = env_info.vector_observations[0]
-    state_size = len(state)
-    hidden_neurons = 24
-    return DDQNAgent(agent_config=AgentConfig(state_size, action_size, LR, UPDATE_EVERY, BATCH_SIZE, GAMMA, TAU),
-                     name=brain_name,
-                     network_builder=lambda: QNetwork(state_size, action_size, hidden_neurons, seed).to(device),
-                     replay_buffer=ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, device, seed),
+def prepare_dqn_agent(environment, agent_config, seed=0):
+    return DQNAgent(agent_config=agent_config,
+                     network_builder=lambda: QNetwork(
+                         agent_config.state_size, 
+                         agent_config.action_size, 
+                         agent_config.hidden_neurons, 
+                         seed
+                     ).to(device),
+                     replay_buffer=ReplayBuffer(
+                         agent_config.action_size, 
+                         agent_config.buffer_size, 
+                         agent_config.batch_size, 
+                         device, 
+                         seed
+                     ),
                      device=device,
-                     seed=0)
+                     seed=seed)
 
 
+def prepare_ddqn_agent(environment, agent_config, seed=0):
+    return DDQNAgent(agent_config=agent_config,
+                     network_builder=lambda: QNetwork(
+                         agent_config.state_size, 
+                         agent_config.action_size, 
+                         agent_config.hidden_neurons, 
+                         seed
+                     ).to(device),
+                     replay_buffer=ReplayBuffer(
+                         agent_config.action_size, 
+                         agent_config.buffer_size, 
+                         agent_config.batch_size, 
+                         device, 
+                         seed
+                     ),
+                     device=device,
+                     seed=seed)
 
-env = prepare_environment()
-agent = prepare_ddqn_agent(env)
 
-scores = train(agent, env, solution_score=100.0)
+def run_training_sessions(agent_factory, lr, update_interval, batch_size, buffer_size, gamma, tau, times=1):
+    env = prepare_environment()
+    hidden_neurons = 36
+    (brain_name, action_size, state_size) = infer_environment_properties(env)
+    agent_config=AgentConfig(
+        brain_name, state_size, action_size, lr, hidden_neurons, update_interval, batch_size, buffer_size, gamma, tau)
+    scores = []
+    for seed in range(times):
+        agent = agent_factory(env, agent_config, seed)
+        scores.append(train(agent, env, solution_score=100.0))
+    env.close()
+    return scores
 
-with open('ddqn_training_l2.txt', 'w') as fp:
-    json.dump(scores, fp)
-
-fig = plt.figure()
-plt.plot(np.arange(len(scores)), scores)
-plt.ylabel('Score')
-plt.xlabel('Episode #')
-plt.savefig("ddqn_training_l2.png")
-
-env.close()
+if __name__ == "__main__":
+    
+    BUFFER_SIZE = int(1e5)  # replay buffer size
+    BATCH_SIZE = 64  # minibatch size
+    GAMMA = 0.99  # discount factor
+    TAU = 1e-3  # for soft update of target parameters
+    LR = 5e-4  # learning rate
+    UPDATE_EVERY = 4  # how often to update the network
+    
+    with open('ddqn_training.txt', 'w') as fp:
+        json.dump(run_training_sessions(prepare_ddqn_agent, LR, UPDATE_EVERY,
+                                        BATCH_SIZE, BUFFER_SIZE, GAMMA, TAU,
+                                        times=1), fp)

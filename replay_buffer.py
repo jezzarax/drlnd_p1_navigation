@@ -3,6 +3,7 @@ from collections import namedtuple, deque
 import numpy as np
 import random
 import torch
+import math
 
 
 class ReplayBuffer:
@@ -32,8 +33,9 @@ class ReplayBuffer:
 
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
-        experiences = self.sample_experience()
+        return self.extract_memory_sample(random.sample(self.memory, k=self.batch_size))
 
+    def extract_memory_sample(self, experiences):
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(self.device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
@@ -41,11 +43,8 @@ class ReplayBuffer:
             self.device)
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(
             self.device)
+        return actions, dones, next_states, rewards, states
 
-        return states, actions, rewards, next_states, dones
-
-    def sample_experience(self):
-        return random.sample(self.memory, k=self.batch_size)
 
 
     def __len__(self):
@@ -54,15 +53,33 @@ class ReplayBuffer:
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, action_size, buffer_size, batch_size, alpha, beta, device, seed):
+    def __init__(self, action_size, buffer_size, batch_size, alpha, beta_start, beta_step_change, device, seed):
         self.priorities = deque(maxlen=buffer_size)
+        self.alpha = alpha
+        self.beta = beta_start
+        self.beta_step_change = beta_step_change
         super().__init__(action_size, buffer_size, batch_size, device, seed)
 
     def sample_experience(self):
-        return np.random.choice(self.memory, self.batch_size, p = self.priorities)
+        probs = np.array(self.priorities) / sum(self.priorities)
+        sampled_experiences_ixs = np.random.choice(len(self.priorities), self.batch_size, p = self.priorities)
+        sampled_experiences = list([super().memory[i] for i in sampled_experiences_ixs])
+        self.beta = min(1.0, self.beta + self.beta_step_change)
+        max_weight = math.pow(probs.min() * len(self.priorities), -self.beta)
+        weights = math.pow((len(self.priorities)* probs[sampled_experiences_ixs]), (-self.beta)) / max_weight
+        weights = torch.tensor(weights, device=super().device, dtype=torch.float)
+        return (sampled_experiences, sampled_experiences_ixs, weights)
+
+    def sample(self):
+        sampled_experiences, sampled_experiences_ixs, weights = self.sample_experience()
+        states, actions, rewards, next_states, dones = super().extract_memory_sample(sampled_experiences)
+        return actions, dones, next_states, rewards, states, sampled_experiences_ixs, weights
 
     def add(self, state, action, reward, next_state, done):
-        pass
+        super().add(state, action, reward, next_state, done)
+        self.priorities.append(math.pow(1.0, self.alpha) if len(self.priorities) == 0 else max(self.priorities))
 
-    def update_probs(p):
-        pass
+    def update_probs(self, ixs, prios):
+        for idx, prio in zip(ixs, prios):
+            self.priorities[idx] = (prio + 1e-5) ** self.alpha
+

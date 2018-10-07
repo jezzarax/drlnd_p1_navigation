@@ -175,7 +175,7 @@ class DQNPAgent(DummyAgent):
             experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples
             gamma (float): discount factor
         """
-        states, actions, rewards, next_states, dones = experiences
+        states, actions, rewards, next_states, dones, sample_ixs, weights = experiences
 
         Q_targets_next = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
 
@@ -185,8 +185,11 @@ class DQNPAgent(DummyAgent):
         # Get expected Q values from local model
         Q_expected = self.qnetwork_local(states).gather(1, actions)
 
+        prio_update = (Q_targets - Q_expected.detach()).squeeze()
+        super().replay_buffer.update_probs(sample_ixs, prio_update)
+
         # Compute loss
-        loss = F.smooth_l1_loss(Q_expected, Q_targets)
+        loss = F.smooth_l1_loss(Q_expected*weights, Q_targets*weights)
 
         self.debug_counter += 1
         # Minimize the loss

@@ -46,7 +46,7 @@ def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_en
         eps = max(eps_end, eps_decay * eps)  # decrease epsilon
         last_100_steps_mean = np.mean(scores[-100:])
         print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, last_100_steps_mean), end="")
-        if i_episode % 100 == 0:
+        if i_episode % 1000 == 0:
             print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, last_100_steps_mean))
 
         if last_100_steps_mean >= solution_score:

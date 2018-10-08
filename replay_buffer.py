@@ -43,7 +43,7 @@ class ReplayBuffer:
             self.device)
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(
             self.device)
-        return actions, dones, next_states, rewards, states
+        return states, actions, rewards, next_states, dones
 
 
 

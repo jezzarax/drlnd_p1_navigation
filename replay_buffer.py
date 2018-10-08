@@ -58,10 +58,12 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self.alpha = alpha
         self.beta = beta_start
         self.beta_step_change = beta_step_change
+        self.max_prio = math.pow(1.0, self.alpha)
+        self.prio_sum = 0
         super().__init__(action_size, buffer_size, batch_size, device, seed)
 
     def sample_experience(self):
-        probs = np.array(self.priorities) / sum(self.priorities)
+        probs = np.array(self.priorities) / self.prio_sum
         sampled_experiences_ixs = np.random.choice(len(self.priorities), self.batch_size, p = probs)
         sampled_experiences = list([self.memory[i] for i in sampled_experiences_ixs])
         self.beta = min(1.0, self.beta + self.beta_step_change)
@@ -77,9 +79,15 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
     def add(self, state, action, reward, next_state, done):
         super().add(state, action, reward, next_state, done)
-        self.priorities.append(math.pow(1.0, self.alpha) if len(self.priorities) == 0 else max(self.priorities))
+        new_prio = math.pow(1.0, self.alpha) if len(self.priorities) == 0 else self.max_prio
+        self.prio_sum = self.prio_sum + new_prio - (self.priorities[0] if len(self.priorities) == self.priorities.maxlen else 0)
+        self.priorities.append(new_prio)
 
     def update_probs(self, ixs, prios):
         for idx, prio in zip(ixs, prios):
-            self.priorities[idx] = (prio + 1e-5) ** self.alpha
+            new_prio = (prio + 1e-5) ** self.alpha
+            self.priorities[idx] = new_prio
+            self.prio_sum = self.prio_sum - self.priorities[idx] + new_prio
+            if self.max_prio < new_prio:
+                self.max_prio = new_prio
 

@@ -13,7 +13,7 @@ ENVIRONMENT_BINARY = os.environ['DRLUD_P1_ENV']
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995,
+def train(agent, environment, n_episodes=50, max_t=2000, eps_start=1.0, eps_end=0.01, eps_decay=0.995,
           solution_score=100.0):
     """Deep Q-Learning.
     Params
@@ -169,8 +169,9 @@ if __name__ == "__main__":
     TAU = 1e-3  # for soft update of target parameters
     LR = 5e-4  # learning rate
     UPDATE_EVERY = 4  # how often to update the network
-    
+
     with open('ddqn_training.txt', 'w') as fp:
         json.dump(run_training_sessions(prepare_prio_agent, LR, UPDATE_EVERY,
                                         BATCH_SIZE, BUFFER_SIZE, GAMMA, TAU,
                                         times=1), fp)
+

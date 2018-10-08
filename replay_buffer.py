@@ -62,18 +62,18 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
     def sample_experience(self):
         probs = np.array(self.priorities) / sum(self.priorities)
-        sampled_experiences_ixs = np.random.choice(len(self.priorities), self.batch_size, p = self.priorities)
-        sampled_experiences = list([super().memory[i] for i in sampled_experiences_ixs])
+        sampled_experiences_ixs = np.random.choice(len(self.priorities), self.batch_size, p = probs)
+        sampled_experiences = list([self.memory[i] for i in sampled_experiences_ixs])
         self.beta = min(1.0, self.beta + self.beta_step_change)
         max_weight = math.pow(probs.min() * len(self.priorities), -self.beta)
-        weights = math.pow((len(self.priorities)* probs[sampled_experiences_ixs]), (-self.beta)) / max_weight
-        weights = torch.tensor(weights, device=super().device, dtype=torch.float)
+        weights = np.power((len(self.priorities)* probs[sampled_experiences_ixs]), (-self.beta)) / max_weight
+        weights = torch.tensor(weights, device=self.device, dtype=torch.float)
         return (sampled_experiences, sampled_experiences_ixs, weights)
 
     def sample(self):
         sampled_experiences, sampled_experiences_ixs, weights = self.sample_experience()
         states, actions, rewards, next_states, dones = super().extract_memory_sample(sampled_experiences)
-        return actions, dones, next_states, rewards, states, sampled_experiences_ixs, weights
+        return states, actions, rewards, next_states, dones, sampled_experiences_ixs, weights
 
     def add(self, state, action, reward, next_state, done):
         super().add(state, action, reward, next_state, done)

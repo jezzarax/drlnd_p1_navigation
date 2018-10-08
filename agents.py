@@ -186,7 +186,7 @@ class DQNPAgent(DummyAgent):
         Q_expected = self.qnetwork_local(states).gather(1, actions)
 
         prio_update = (Q_targets - Q_expected.detach()).squeeze()
-        super().replay_buffer.update_probs(sample_ixs, prio_update)
+        self.memory.update_probs(sample_ixs, prio_update)
 
         # Compute loss
         loss = F.smooth_l1_loss(Q_expected*weights, Q_targets*weights)

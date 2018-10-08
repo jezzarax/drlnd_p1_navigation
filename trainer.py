@@ -3,7 +3,7 @@ from unityagents import UnityEnvironment
 
 from agents import *
 from qnetwork import *
-from replay_buffer import ReplayBuffer
+from replay_buffer import *
 import matplotlib.pyplot as plt
 import json
 
@@ -126,6 +126,27 @@ def prepare_dueling_agent(environment, agent_config, seed=0):
                      device=device,
                      seed=seed)
 
+def prepare_prio_agent(environment, agent_config, seed=0):
+    return DQNPAgent(agent_config=agent_config,
+                     network_builder=lambda: QNetwork(
+                         agent_config.state_size, 
+                         agent_config.action_size, 
+                         agent_config.hidden_neurons, 
+                         seed
+                     ).to(device),
+                     replay_buffer=PrioritizedReplayBuffer(
+                         agent_config.action_size, 
+                         agent_config.buffer_size, 
+                         agent_config.batch_size, 
+                         0.5,
+                         1e-7,
+                         1e-10,
+                         device, 
+                         seed
+                     ),
+                     device=device,
+                     seed=seed)
+
 
 def run_training_sessions(agent_factory, lr, update_interval, batch_size, buffer_size, gamma, tau, times=1):
     env = prepare_environment()
@@ -150,6 +171,6 @@ if __name__ == "__main__":
     UPDATE_EVERY = 4  # how often to update the network
     
     with open('ddqn_training.txt', 'w') as fp:
-        json.dump(run_training_sessions(prepare_dueling_agent, LR, UPDATE_EVERY,
+        json.dump(run_training_sessions(prepare_prio_agent, LR, UPDATE_EVERY,
                                         BATCH_SIZE, BUFFER_SIZE, GAMMA, TAU,
                                         times=1), fp)

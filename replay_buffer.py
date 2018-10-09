@@ -84,10 +84,10 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self.priorities.append(new_prio)
 
     def update_probs(self, ixs, prios):
-        for idx, prio in zip(ixs, prios):
-            new_prio = (prio + 1e-5) ** self.alpha
-            self.priorities[idx] = new_prio
+        for idx, prio in zip(ixs, prios.tolist()):
+            new_prio = (abs(prio) + 1e-5) ** self.alpha
             self.prio_sum = self.prio_sum - self.priorities[idx] + new_prio
+            self.priorities[idx] = new_prio
             if self.max_prio < new_prio:
                 self.max_prio = new_prio
 

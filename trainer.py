@@ -2,8 +2,8 @@ import os
 from unityagents import UnityEnvironment
 
 from agents import *
-from qnetwork import QNetwork
-from replay_buffer import ReplayBuffer
+from qnetwork import *
+from replay_buffer import *
 import matplotlib.pyplot as plt
 from collections import namedtuple
 import json, sys, logging
@@ -20,7 +20,7 @@ ENVIRONMENT_BINARY = os.environ['DRLUD_P1_ENV']
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def train(agent, environment, n_episodes=20, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995,
+def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995,
           solution_score=100.0):
     """Deep Q-Learning.
     Params
@@ -113,6 +113,27 @@ def prepare_ddqn_agent(environment, agent_config, seed=0):
                      device=device,
                      seed=seed)
 
+def prepare_dueling_agent(environment, agent_config, seed=0):
+    return DDQNAgent(agent_config=agent_config,
+                     network_builder=lambda: DuelQNetwork(
+                         agent_config.state_size, 
+                         agent_config.action_size, 
+                         agent_config.hidden_neurons,
+                         16,
+                         64, 
+                         seed
+                     ).to(device),
+                     replay_buffer=ReplayBuffer(
+                         agent_config.action_size, 
+                         agent_config.buffer_size, 
+                         agent_config.batch_size, 
+                         device, 
+                         seed
+                     ),
+                     device=device,
+                     seed=seed)
+
+
 
 def run_training_session(agent_factory, lr, update_interval, batch_size, buffer_size, gamma, tau, times=1):
     env = prepare_environment()
@@ -147,12 +168,13 @@ simulation_hyperparameter_reference = {
     13: hparm(5e-4, 4,  128, int(1e5), 0.99, 1e-3, 10,  "ddqn"),
     14: hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  "ddqn"),
     15: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 100, "ddqn"),
-    16: hparm(5e-6, 4,  64,  int(1e5), 0.99, 1e-3, 1, "ddqn")
+    16: hparm(5e-6, 4,  64,  int(1e5), 0.99, 1e-3, 100, "ddqn")
 }
 
 algorithm_factories = {
     "dqn": prepare_dqn_agent,
-    "ddqn": prepare_ddqn_agent
+    "ddqn": prepare_ddqn_agent,
+    "dueling": prepare_dueling_agent
 }
 
 def ensure_training_run(id: int, parm: hparm):

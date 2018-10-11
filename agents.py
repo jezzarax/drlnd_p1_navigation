@@ -8,15 +8,15 @@ from abc import abstractmethod
 from torch import optim
 
 AgentConfig = namedtuple("AgentConfig", [
-    "agent_name", 
-    "state_size", 
-    "action_size", 
-    "lr", 
-    "hidden_neurons", 
-    "update_every", 
-    "batch_size", 
-    "buffer_size", 
-    "gamma", 
+    "agent_name",
+    "state_size",
+    "action_size",
+    "lr",
+    "hidden_neurons",
+    "update_every",
+    "batch_size",
+    "buffer_size",
+    "gamma",
     "tau"
 ])
 
@@ -165,4 +165,3 @@ class DQNAgent(DummyAgent):
 
         # ------------------- update target network ------------------- #
         self.soft_update(self.qnetwork_local, self.qnetwork_target, self.config.tau)
-

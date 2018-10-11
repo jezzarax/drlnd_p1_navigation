@@ -3,6 +3,7 @@ from collections import namedtuple, deque
 import numpy as np
 import random
 import torch
+import math
 
 
 class ReplayBuffer:
@@ -32,8 +33,9 @@ class ReplayBuffer:
 
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
-        experiences = random.sample(self.memory, k=self.batch_size)
+        return self.extract_memory_sample(random.sample(self.memory, k=self.batch_size))
 
+    def extract_memory_sample(self, experiences):
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(self.device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
@@ -41,8 +43,9 @@ class ReplayBuffer:
             self.device)
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(
             self.device)
-
         return states, actions, rewards, next_states, dones
+
+
 
     def __len__(self):
         """Return the current size of internal memory."""

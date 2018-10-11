@@ -12,13 +12,15 @@ Please ensure you have [Pipenv](https://pipenv.readthedocs.io/en/latest/) instal
 
 Due to the transitive dependency to tensorflow that comes from unity ml-agents and the [bug](https://github.com/pypa/pipenv/issues/1716) causing incompatibility to jupyter you might want to either drop the jupyter from the list of dependencies or run `pipenv --three install --skip-lock` to overcome it.
 
-To see the performance of agents using DQN and DDQN with different sets of hyperparameters (lr, batch_size, etc) as well training code example please check the [parameter search notebook](Training_parameter_search.ipynb).
+To see the performance of agents using DQN and DDQN with different sets of hyperparameters (lr, batch_size, etc) as well training code example please check the [hyperparameter search notebook](Training_hyperparameter_search_analysis.ipynb).
 
 ## Implementation details
 
-The neural network architecture is defined in the `qnetwork.py` file. With some trial and error I found the smallest network that gave me reasonable performance in terms of number of episodes to reach a certain threshold.
+Two neural network architectures are defined in the `qnetwork.py` file. 
+* QNetwork class implement a three-layer neural network with a parameterized hidden layer size.
+* DuelQNetwork class implements a dueling q-network as described in the "Dueling Network Architectures for Deep Reinforcement Learning" paper ([arXiv:1511.06581](https://arxiv.org/abs/1511.06581))
 
-Implementation of DQN and DDQN agents is located inside of `agents.py`. Both of them rely on the same neural network architecture as well as the replay buffer which is in `replay_buffer.py`.
+Implementations of DQN and DDQN agents are located inside of `agents.py`. Both of them rely on the same neural network architecture as well as the replay buffer which is in `replay_buffer.py`.
 
 ## Future improvements
 

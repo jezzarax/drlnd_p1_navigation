@@ -5,15 +5,22 @@ from agents import *
 from qnetwork import *
 from replay_buffer import *
 import matplotlib.pyplot as plt
-import json
+from collections import namedtuple
+import json, sys, logging
 
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
+    stream=sys.stdout
+)
 
 ENVIRONMENT_BINARY = os.environ['DRLUD_P1_ENV']
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def train(agent, environment, n_episodes=50, max_t=2000, eps_start=1.0, eps_end=0.01, eps_decay=0.995,
+def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995,
           solution_score=100.0):
     """Deep Q-Learning.
     Params
@@ -126,29 +133,9 @@ def prepare_dueling_agent(environment, agent_config, seed=0):
                      device=device,
                      seed=seed)
 
-def prepare_prio_agent(environment, agent_config, seed=0):
-    return DQNPAgent(agent_config=agent_config,
-                     network_builder=lambda: QNetwork(
-                         agent_config.state_size, 
-                         agent_config.action_size, 
-                         agent_config.hidden_neurons, 
-                         seed
-                     ).to(device),
-                     replay_buffer=PrioritizedReplayBuffer(
-                         agent_config.action_size, 
-                         agent_config.buffer_size, 
-                         agent_config.batch_size, 
-                         0.5,
-                         1e-7,
-                         1e-10,
-                         device, 
-                         seed
-                     ),
-                     device=device,
-                     seed=seed)
 
 
-def run_training_sessions(agent_factory, lr, update_interval, batch_size, buffer_size, gamma, tau, times=1):
+def run_training_session(agent_factory, lr, update_interval, batch_size, buffer_size, gamma, tau, times=1):
     env = prepare_environment()
     hidden_neurons = 36
     (brain_name, action_size, state_size) = infer_environment_properties(env)
@@ -161,17 +148,53 @@ def run_training_sessions(agent_factory, lr, update_interval, batch_size, buffer
     env.close()
     return scores
 
+hparm = namedtuple("hparm", ["lr", "update_rate", "batch_size", "memory_size", "gamma", "tau", "times", "algorithm"])
+
+path_prefix = "./hp_search_results/"
+
+simulation_hyperparameter_reference = { 
+    1:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  "ddqn"),
+    2:  hparm(5e-3, 4,  64,  int(1e5), 0.99, 1e-3, 10,  "ddqn"),
+    3:  hparm(5e-2, 4,  64,  int(1e5), 0.99, 1e-3, 10,  "ddqn"),
+    4:  hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  "ddqn"),
+    5:  hparm(5e-4, 16, 64,  int(1e5), 0.99, 1e-3, 10,  "ddqn"),
+    6:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-2, 10,  "ddqn"),
+    7:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 5e-2, 10,  "ddqn"),
+    8:  hparm(5e-5, 4,  64,  int(1e5), 0.99, 1e-3, 10,  "ddqn"),
+    9:  hparm(5e-4, 4,  64,  int(1e4), 0.99, 1e-3, 10,  "ddqn"),
+    10: hparm(5e-4, 4,  64,  int(1e3), 0.99, 1e-3, 10,  "ddqn"),
+    11: hparm(5e-4, 4,  32,  int(1e5), 0.99, 1e-3, 10,  "ddqn"),
+    12: hparm(5e-4, 4,  16,  int(1e5), 0.99, 1e-3, 10,  "ddqn"),
+    13: hparm(5e-4, 4,  128, int(1e5), 0.99, 1e-3, 10,  "ddqn"),
+    14: hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  "ddqn"),
+    15: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 100, "ddqn"),
+    16: hparm(5e-6, 4,  64,  int(1e5), 0.99, 1e-3, 100, "ddqn")
+}
+
+algorithm_factories = {
+    "dqn": prepare_dqn_agent,
+    "ddqn": prepare_ddqn_agent,
+    "dueling": prepare_dueling_agent
+}
+
+def ensure_training_run(id: int, parm: hparm):
+    if(os.path.isfile(f"{path_prefix}set{id}_results.json")):
+        logging.info(f"Skipping configuration {id} with following parameters {parm}")
+    else:
+        logging.info(f"Running {id} with following parameters {parm}")
+        run_result = run_training_session(
+            algorithm_factories[parm.algorithm],
+            parm.lr,
+            parm.update_rate,
+            parm.batch_size,
+            parm.memory_size,
+            parm.gamma,
+            parm.tau,
+            parm.times
+        )
+        with open(f"{path_prefix}set{id}_results.json", "w") as fp:
+            json.dump(run_result, fp)
+
 if __name__ == "__main__":
-    
-    BUFFER_SIZE = int(1e5)  # replay buffer size
-    BATCH_SIZE = 64  # minibatch size
-    GAMMA = 0.99  # discount factor
-    TAU = 1e-3  # for soft update of target parameters
-    LR = 5e-4  # learning rate
-    UPDATE_EVERY = 4  # how often to update the network
-
-    with open('ddqn_training.txt', 'w') as fp:
-        json.dump(run_training_sessions(prepare_prio_agent, LR, UPDATE_EVERY,
-                                        BATCH_SIZE, BUFFER_SIZE, GAMMA, TAU,
-                                        times=1), fp)
-
+    for parm_id in simulation_hyperparameter_reference:
+        ensure_training_run(parm_id, simulation_hyperparameter_reference[parm_id])

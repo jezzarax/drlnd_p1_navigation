@@ -129,7 +129,21 @@ if __name__ == "__main__":
     LR = 5e-4  # learning rate
     UPDATE_EVERY = 4  # how often to update the network
     
-    with open('ddqn_training.txt', 'w') as fp:
-        json.dump(run_training_sessions(prepare_ddqn_agent, LR, UPDATE_EVERY,
-                                        BATCH_SIZE, BUFFER_SIZE, GAMMA, TAU,
-                                        times=1), fp)
+    with open('set8_results.json', 'w') as fp:
+        json.dump(run_training_sessions(prepare_ddqn_agent, 5e-5, 4, 64, int(1e5), 0.99, 1e-3, times=10), fp)
+    with open('set9_results.json', 'w') as fp:
+        json.dump(run_training_sessions(prepare_ddqn_agent, 5e-4, 4, 64, int(1e4), 0.99, 1e-3, times=10), fp)
+    with open('set10_results.json', 'w') as fp:
+        json.dump(run_training_sessions(prepare_ddqn_agent, 5e-4, 4, 64, int(1e3), 0.99, 1e-3, times=10), fp)
+    with open('set11_results.json', 'w') as fp:
+        json.dump(run_training_sessions(prepare_ddqn_agent, 5e-4, 4, 32, int(1e5), 0.99, 1e-3, times=10), fp)
+    with open('set12_results.json', 'w') as fp:
+        json.dump(run_training_sessions(prepare_ddqn_agent, 5e-4, 4, 16, int(1e5), 0.99, 1e-3, times=10), fp)
+    with open('set13_results.json', 'w') as fp:
+        json.dump(run_training_sessions(prepare_ddqn_agent, 5e-4, 4, 128, int(1e5), 0.99, 1e-3, times=10), fp)
+    with open('set14_results.json', 'w') as fp:
+        json.dump(run_training_sessions(prepare_ddqn_agent, 5e-4, 8, 64, int(1e5), 0.99, 1e-3, times=10), fp)
+    with open('set15_results.json', 'w') as fp:
+        json.dump(run_training_sessions(prepare_ddqn_agent, 5e-4, 4, 64, int(1e5), 0.99, 1e-3, times=100), fp)
+    with open('set16_results.json', 'w') as fp:
+        json.dump(run_training_sessions(prepare_ddqn_agent, 5e-6, 4, 64, int(1e5), 0.99, 1e-3, times=100), fp)

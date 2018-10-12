@@ -151,23 +151,32 @@ hparm = namedtuple("hparm", ["lr", "update_rate", "batch_size", "memory_size", "
 
 path_prefix = "./hp_search_results/"
 
-simulation_hyperparameter_reference = { 
-    1:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"),
-    2:  hparm(5e-3, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"),
-    3:  hparm(5e-2, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"),
-    4:  hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"),
-    5:  hparm(5e-4, 16, 64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"),
-    6:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-2, 10,  36, "ddqn"),
-    7:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 5e-2, 10,  36, "ddqn"),
-    8:  hparm(5e-5, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"),
-    9:  hparm(5e-4, 4,  64,  int(1e4), 0.99, 1e-3, 10,  36, "ddqn"),
-    10: hparm(5e-4, 4,  64,  int(1e3), 0.99, 1e-3, 10,  36, "ddqn"),
-    11: hparm(5e-4, 4,  32,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"),
-    12: hparm(5e-4, 4,  16,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"),
-    13: hparm(5e-4, 4,  128, int(1e5), 0.99, 1e-3, 10,  36, "ddqn"),
-    14: hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"),
-    15: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 100, 36, "ddqn"),
-    16: hparm(5e-6, 4,  64,  int(1e5), 0.99, 1e-3, 100, 36, "ddqn")
+simulation_hyperparameter_reference = {
+    1:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    2:  hparm(5e-3, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    3:  hparm(5e-2, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    4:  hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    5:  hparm(5e-4, 16, 64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    6:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-2, 10,  36, "ddqn"      ),
+    7:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 5e-2, 10,  36, "ddqn"      ),
+    8:  hparm(5e-5, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    9:  hparm(5e-4, 4,  64,  int(1e4), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    10: hparm(5e-4, 4,  64,  int(1e3), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    11: hparm(5e-4, 4,  32,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    12: hparm(5e-4, 4,  16,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    13: hparm(5e-4, 4,  128, int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    14: hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    15: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 100, 36, "ddqn"      ),
+    16: hparm(5e-6, 4,  64,  int(1e5), 0.99, 1e-3, 100, 36, "ddqn"      ),
+    17: hparm(5e-4, 4,  64,  int(1e5), 0.99,  0.5, 10,  36, "ddqn"      ),
+    18: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
+    19: hparm(5e-4, 2,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    20: hparm(5e-4, 1,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    21: hparm(5e-4, 2,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
+    22: hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
+    23: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dueling"   ),
+    24: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dueling"   ),
+    25: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dueling"   )
 }
 
 algorithm_factories = {

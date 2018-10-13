@@ -59,11 +59,10 @@ def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_en
             print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, last_100_steps_mean))
         if last_100_steps_mean >= solution_score and not weights_stored:
             print(f'\nEnvironment solved in {i_episode:d} episodes!\tAverage Score: {last_100_steps_mean:.2f}')
-            torch.save(agent.qnetwork_local.state_dict(), store_weights_to)
+            torch.save(agent.qnetwork_local.state_dict(), store_weights_to.replace("eps", str(i_episode)))
             weights_stored = True
-    if not weights_stored:
-        torch.save(agent.qnetwork_local.state_dict(), store_weights_to)
-        weights_stored = True
+    
+    torch.save(agent.qnetwork_local.state_dict(), store_weights_to.replace("eps", str(n_episodes)))
     return scores
 
 
@@ -139,7 +138,7 @@ def prepare_dueling_agent(environment, agent_config, seed=0):
 
 
 
-def run_training_session(agent_factory, lr, update_interval, batch_size, buffer_size, gamma, tau, hidden_neurons, id, times=1):
+def run_training_session(agent_factory, lr, update_interval, batch_size, buffer_size, gamma, tau, hidden_neurons, id, score_threshold, times=1):
     env = prepare_environment()
     (brain_name, action_size, state_size) = infer_environment_properties(env)
     agent_config=AgentConfig(
@@ -147,7 +146,7 @@ def run_training_session(agent_factory, lr, update_interval, batch_size, buffer_
     scores = []
     for seed in range(times):
         agent = agent_factory(env, agent_config, seed)
-        scores.append(train(agent, env, solution_score=100.0, store_weights_to=f"{path_prefix}set{id}_weights_{seed}.pth"))
+        scores.append(train(agent, env, solution_score=score_threshold, store_weights_to=f"{path_prefix}set{id}_weights_{seed}.pth"))
     env.close()
     return scores
 
@@ -165,22 +164,12 @@ simulation_hyperparameter_reference = {
     7:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 5e-2, 10,  36, "ddqn"      ),
     8:  hparm(5e-5, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
     9:  hparm(5e-4, 4,  64,  int(1e4), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    10: hparm(5e-4, 4,  64,  int(1e3), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    11: hparm(5e-4, 4,  32,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    12: hparm(5e-4, 4,  16,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    13: hparm(5e-4, 4,  128, int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    14: hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    15: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 100, 36, "ddqn"      ),
-    16: hparm(5e-6, 4,  64,  int(1e5), 0.99, 1e-3, 100, 36, "ddqn"      ),
-    17: hparm(5e-4, 4,  64,  int(1e5), 0.99,  0.5, 10,  36, "ddqn"      ),
-    18: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
-    19: hparm(5e-4, 2,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    20: hparm(5e-4, 1,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    21: hparm(5e-4, 2,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
-    22: hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
-    23: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dueling"   ),
-    24: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dueling"   ),
-    25: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dueling"   )
+    25: hparm(3e-4, 1,  128,  int(1e5), 0.99, 1e-4, 1,  36, "dueling"   ),
+    36: hparm(6e-4, 1,  128,  int(1e5), 0.99, 1e-4, 1,  36, "dueling"   ),
+    37: hparm(6e-4, 4,  128,  int(1e5), 0.99, 1e-4, 1,  36, "dueling"   ),
+    38: hparm(1e-3, 1,  128,  int(1e5), 0.99, 1e-4, 1,  36, "dueling"   )
+
+
 }
 
 algorithm_factories = {
@@ -204,9 +193,10 @@ def ensure_training_run(id: int, parm: hparm):
             parm.tau,
             parm.hidden_layer_size,
             id,
+            13.0,
             parm.times
         )
-        with open(f"{path_prefix}set{id}_results.json", "w") as fp:
+        with open(f"{path_prefix}set{id}_episode_eps_results.json", "w") as fp:
             json.dump(run_result, fp)
 
 if __name__ == "__main__":

@@ -146,7 +146,7 @@ def run_training_session(agent_factory, lr, update_interval, batch_size, buffer_
     scores = []
     for seed in range(times):
         agent = agent_factory(env, agent_config, seed)
-        scores.append(train(agent, env, solution_score=score_threshold, store_weights_to=f"{path_prefix}set{id}_weights_{seed}.pth"))
+        scores.append(train(agent, env, solution_score=score_threshold, store_weights_to=f"{path_prefix}set{id}_weights_episode_eps_seed_{seed}.pth"))
     env.close()
     return scores
 
@@ -212,7 +212,7 @@ def ensure_training_run(id: int, parm: hparm):
             13.0,
             parm.times
         )
-        with open(f"{path_prefix}set{id}_episode_eps_results.json", "w") as fp:
+        with open(f"{path_prefix}set{id}_results.json", "w") as fp:
             json.dump(run_result, fp)
 
 if __name__ == "__main__":

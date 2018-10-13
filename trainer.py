@@ -16,12 +16,13 @@ logging.basicConfig(
 )
 
 ENVIRONMENT_BINARY = os.environ['DRLUD_P1_ENV']
+path_prefix = "./hp_search_results/"
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995,
-          solution_score=100.0):
+          solution_score=100.0, store_weights_to="checkpoint.pth", persist = False):
     """Deep Q-Learning.
     Params
     ======
@@ -33,6 +34,7 @@ def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_en
     """
     scores = []  # list containing scores from each episode
     eps = eps_start  # initialize epsilon
+    weights_stored = False
     for i_episode in range(1, n_episodes + 1):
         env_info = environment.reset(train_mode=True)[agent.name]
         state = env_info.vector_observations[0]
@@ -55,11 +57,12 @@ def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_en
         print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, last_100_steps_mean), end="")
         if i_episode % 1000 == 0:
             print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, last_100_steps_mean))
-
-        if last_100_steps_mean >= solution_score:
+        if last_100_steps_mean >= solution_score and not weights_stored and persist:
             print(f'\nEnvironment solved in {i_episode:d} episodes!\tAverage Score: {last_100_steps_mean:.2f}')
-            torch.save(agent.qnetwork_local.state_dict(), 'checkpoint.pth')
-            break
+            torch.save(agent.qnetwork_local.state_dict(), store_weights_to.replace("eps", str(i_episode)))
+            weights_stored = True
+    if persist:
+        torch.save(agent.qnetwork_local.state_dict(), store_weights_to.replace("eps", str(n_episodes)))
     return scores
 
 
@@ -135,7 +138,7 @@ def prepare_dueling_agent(environment, agent_config, seed=0):
 
 
 
-def run_training_session(agent_factory, lr, update_interval, batch_size, buffer_size, gamma, tau, hidden_neurons, times=1):
+def run_training_session(agent_factory, lr, update_interval, batch_size, buffer_size, gamma, tau, hidden_neurons, id, score_threshold, times=1):
     env = prepare_environment()
     (brain_name, action_size, state_size) = infer_environment_properties(env)
     agent_config=AgentConfig(
@@ -143,40 +146,45 @@ def run_training_session(agent_factory, lr, update_interval, batch_size, buffer_
     scores = []
     for seed in range(times):
         agent = agent_factory(env, agent_config, seed)
-        scores.append(train(agent, env, solution_score=100.0))
+        scores.append(train(agent, env, solution_score=score_threshold, store_weights_to=f"{path_prefix}set{id}_weights_episode_eps_seed_{seed}.pth", persist=True))
     env.close()
     return scores
 
 hparm = namedtuple("hparm", ["lr", "update_rate", "batch_size", "memory_size", "gamma", "tau", "times", "hidden_layer_size", "algorithm"])
 
-path_prefix = "./hp_search_results/"
+
 
 simulation_hyperparameter_reference = {
-    1:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    2:  hparm(5e-3, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    3:  hparm(5e-2, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    4:  hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    5:  hparm(5e-4, 16, 64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    6:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-2, 10,  36, "ddqn"      ),
-    7:  hparm(5e-4, 4,  64,  int(1e5), 0.99, 5e-2, 10,  36, "ddqn"      ),
-    8:  hparm(5e-5, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    9:  hparm(5e-4, 4,  64,  int(1e4), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    10: hparm(5e-4, 4,  64,  int(1e3), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    11: hparm(5e-4, 4,  32,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    12: hparm(5e-4, 4,  16,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    13: hparm(5e-4, 4,  128, int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    14: hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    15: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 100, 36, "ddqn"      ),
-    16: hparm(5e-6, 4,  64,  int(1e5), 0.99, 1e-3, 100, 36, "ddqn"      ),
-    17: hparm(5e-4, 4,  64,  int(1e5), 0.99,  0.5, 10,  36, "ddqn"      ),
-    18: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
-    19: hparm(5e-4, 2,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    20: hparm(5e-4, 1,  64,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
-    21: hparm(5e-4, 2,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
-    22: hparm(5e-4, 8,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
-    23: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dueling"   ),
-    24: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dueling"   ),
-    25: hparm(5e-4, 4,  64,  int(1e5), 0.99, 1e-3, 10,  36, "dueling"   )
+    1:   hparm(5e-4, 4,  64,   int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    2:   hparm(5e-3, 4,  64,   int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    3:   hparm(5e-2, 4,  64,   int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    4:   hparm(5e-4, 8,  64,   int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    5:   hparm(5e-4, 16, 64,   int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    6:   hparm(5e-4, 4,  64,   int(1e5), 0.99, 1e-2, 10,  36, "ddqn"      ),
+    7:   hparm(5e-4, 4,  64,   int(1e5), 0.99, 5e-2, 10,  36, "ddqn"      ),
+    8:   hparm(5e-5, 4,  64,   int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    9:   hparm(5e-4, 4,  64,   int(1e4), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    10:  hparm(5e-4, 4,  64,   int(1e3), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    11:  hparm(5e-4, 4,  32,   int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    12:  hparm(5e-4, 4,  16,   int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    13:  hparm(5e-4, 4,  128,  int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    14:  hparm(5e-4, 8,  64,   int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    15:  hparm(5e-4, 4,  64,   int(1e5), 0.99, 1e-3, 100, 36, "ddqn"      ),
+    16:  hparm(5e-6, 4,  64,   int(1e5), 0.99, 1e-3, 100, 36, "ddqn"      ),
+    17:  hparm(5e-4, 4,  64,   int(1e5), 0.99,  0.5, 10,  36, "ddqn"      ),
+    18:  hparm(5e-4, 4,  64,   int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
+    19:  hparm(5e-4, 2,  64,   int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    20:  hparm(5e-4, 1,  64,   int(1e5), 0.99, 1e-3, 10,  36, "ddqn"      ),
+    21:  hparm(5e-4, 2,  64,   int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
+    22:  hparm(5e-4, 8,  64,   int(1e5), 0.99, 1e-3, 10,  36, "dqn"       ),
+    23:  hparm(5e-4, 4,  64,   int(1e5), 0.99, 1e-3, 10,  36, "dueling"   ),
+    24:  hparm(5e-4, 4,  64,   int(1e5), 0.99, 1e-3, 10,  36, "dueling"   ),
+    25:  hparm(5e-4, 4,  64,   int(1e5), 0.99, 1e-3, 10,  36, "dueling"   ),
+    36:  hparm(6e-4, 1,  128,  int(1e5), 0.99, 1e-4, 1,   36, "dueling"   ),
+    37:  hparm(6e-4, 4,  128,  int(1e5), 0.99, 1e-4, 1,   36, "dueling"   ),
+    38:  hparm(1e-3, 1,  128,  int(1e5), 0.99, 1e-4, 1,   36, "dueling"   ),
+    45:  hparm(3e-4, 1,  128,  int(1e5), 0.99, 1e-4, 1,   36, "dueling"   ),
+    100: hparm(2e-4, 1,  512,  int(1e5), 0.99, 1e-4, 5,   36, "dueling"   )
 }
 
 algorithm_factories = {
@@ -199,6 +207,8 @@ def ensure_training_run(id: int, parm: hparm):
             parm.gamma,
             parm.tau,
             parm.hidden_layer_size,
+            id,
+            13.0,
             parm.times
         )
         with open(f"{path_prefix}set{id}_results.json", "w") as fp:

@@ -1,5 +1,3 @@
-Not much to see here.
-
 Solution to the first project of the deep reinforcement learning nanodegree at Udacity.
 
 ## Problem definition
@@ -87,10 +85,3 @@ To see the performance of agents using DQN and DDQN with different sets of hyper
 
 Please check the [following notebook](Report.ipynb) for the best set of hyperparameters I managed to identify.
 
-## Future improvements
-
-WIP
-
-Notes:
-* State prediction module
-* p.6 from prioritized replay paper

@@ -22,7 +22,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995,
-          solution_score=100.0, store_weights_to="checkpoint.pth"):
+          solution_score=100.0, store_weights_to="checkpoint.pth", persist = False):
     """Deep Q-Learning.
     Params
     ======
@@ -57,12 +57,12 @@ def train(agent, environment, n_episodes=2000, max_t=1000, eps_start=1.0, eps_en
         print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, last_100_steps_mean), end="")
         if i_episode % 1000 == 0:
             print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, last_100_steps_mean))
-        if last_100_steps_mean >= solution_score and not weights_stored:
+        if last_100_steps_mean >= solution_score and not weights_stored and persist:
             print(f'\nEnvironment solved in {i_episode:d} episodes!\tAverage Score: {last_100_steps_mean:.2f}')
             torch.save(agent.qnetwork_local.state_dict(), store_weights_to.replace("eps", str(i_episode)))
             weights_stored = True
-    
-    torch.save(agent.qnetwork_local.state_dict(), store_weights_to.replace("eps", str(n_episodes)))
+    if persist:
+        torch.save(agent.qnetwork_local.state_dict(), store_weights_to.replace("eps", str(n_episodes)))
     return scores
 
 
@@ -146,7 +146,7 @@ def run_training_session(agent_factory, lr, update_interval, batch_size, buffer_
     scores = []
     for seed in range(times):
         agent = agent_factory(env, agent_config, seed)
-        scores.append(train(agent, env, solution_score=score_threshold, store_weights_to=f"{path_prefix}set{id}_weights_episode_eps_seed_{seed}.pth"))
+        scores.append(train(agent, env, solution_score=score_threshold, store_weights_to=f"{path_prefix}set{id}_weights_episode_eps_seed_{seed}.pth", persist=True))
     env.close()
     return scores
 
@@ -185,8 +185,6 @@ simulation_hyperparameter_reference = {
     38:  hparm(1e-3, 1,  128,  int(1e5), 0.99, 1e-4, 1,   36, "dueling"   ),
     45:  hparm(3e-4, 1,  128,  int(1e5), 0.99, 1e-4, 1,   36, "dueling"   ),
     100: hparm(2e-4, 1,  512,  int(1e5), 0.99, 1e-4, 5,   36, "dueling"   )
-
-
 }
 
 algorithm_factories = {

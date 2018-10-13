@@ -23,7 +23,11 @@ DRLUD_P1_ENV=../deep-reinforcement-learning/p1_navigation/Banana.app; export DRL
 
 Details of downloading and setting of the environment are described in Udacity nanodegree materials.
 
-### Training
+### Training (easy way)
+
+Just follow the [training notebook](Training.ipynb).
+
+### Training (proper way)
 
 The executable part of code is built as a three-stage pipeline comprising of
 * training pipeline
